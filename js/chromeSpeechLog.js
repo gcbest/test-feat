@@ -1,57 +1,4 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-	<meta charset="UTF-8">
-	<title>Ziggeo Test Video Page</title>
-	<link rel="stylesheet" href="https://assets-cdn.ziggeo.com/v1-stable/ziggeo.css" />
-  <script
-  src="https://code.jquery.com/jquery-3.2.0.slim.min.js"
-  integrity="sha256-qLAv0kBAihcHZLI3fv3WITKeRsUX27hd6upBBa0MSow="
-  crossorigin="anonymous"></script>
-	<script src="https://assets-cdn.ziggeo.com/v1-stable/ziggeo.js"></script>
-  <!-- <script src="chromeSpeechLog.js"></script> -->
-	<script>ZiggeoApi.token = "a57eb696426aa86a891d1bb9baa0b9ab";</script>
-	<script>ZiggeoApi.Config.webrtc = true;</script> 
-	
-</head>
-<body>
-	<ziggeo ziggeo-meta_profile="6d7323ec4979d8d5b4bca6eb9ab1c695"
-          ziggeo-width=320
-          ziggeo-height=240>
-  </ziggeo>
-
-  <button onclick="startButton(event);">Audio Record</button>
-
-  <div id="transcription-output-area">
-    
-  </div>
-</body>
-
-<!-- Alert when video finished recording -->
-<script>
-ZiggeoApi.Events.on("submitted", function (data) {
-    alert("The video with token " + data.video.token + " has been submitted!");
-});
-</script>
-
-<!-- Play videos code -->
-<script>
-    ZiggeoApi.Videos.source('')
-</script>
-
-<!-- Use Javascript on the client-side to dynamically display videos using e.g. JQuery. -->
-
-<script>
-    ZiggeoApi.Videos.index({}, {
-        success: function (args, videos) {
-            for (var i = 0; i < videos.length; ++i)
-                $("body").append("<ziggeo ziggeo-video='" + videos[i].token + "'></ziggeo>");
-        }
-    });
-</script>
-
-<script>
-  if (!('webkitSpeechRecognition' in window)) {
+if (!('webkitSpeechRecognition' in window)) {
     //Speech API not supported here…
     alert("Speech Logger not available, try using Google Chrome");
 } else { //Let’s do some cool stuff :)
@@ -98,5 +45,3 @@ function startButton(event) {
     recognition.start();
     // start_img.src = 'https://speechlogger.appspot.com/images/micslash2.png'; //We change the image to a slashed until the user approves the browser to listen and recognition actually starts. Then – we’ll change the image to ‘mic on’.
 }
-</script>
-</html>

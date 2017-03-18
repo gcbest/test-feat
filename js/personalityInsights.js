@@ -33,6 +33,11 @@ function getInsights() {
 }
 
 
+module.exports = {
+  insight: getInsights,
+  params: params_insight 
+}
+
 
 // speech to text
 

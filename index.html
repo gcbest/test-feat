@@ -4,10 +4,7 @@
 	<meta charset="UTF-8">
 	<title>Ziggeo Test Video Page</title>
 	<link rel="stylesheet" href="https://assets-cdn.ziggeo.com/v1-stable/ziggeo.css" />
-  <script
-  src="https://code.jquery.com/jquery-3.2.0.slim.min.js"
-  integrity="sha256-qLAv0kBAihcHZLI3fv3WITKeRsUX27hd6upBBa0MSow="
-  crossorigin="anonymous"></script>
+  <script src="https://code.jquery.com/jquery.js"></script>
 	<script src="https://assets-cdn.ziggeo.com/v1-stable/ziggeo.js"></script>
   <!-- <script src="chromeSpeechLog.js"></script> -->
 	<script>ZiggeoApi.token = "a57eb696426aa86a891d1bb9baa0b9ab";</script>
@@ -20,7 +17,8 @@
           ziggeo-height=240>
   </ziggeo>
 
-  <button onclick="startButton(event);">Audio Record</button>
+  <!-- onclick="startButton(event);" -->
+  <button id='audi' >Audio Record</button>
 
   <div id="transcription-output-area">
     
@@ -98,9 +96,11 @@ recognition.onresult = function(event) { //the event holds the results
         if (event.results[i].isFinal) { //Final results
             console.log("final results: " + event.results[i][0].transcript);   //Of course – here is the place to do useful things with the results.
             $('#transcription-output-area').html('' + event.results[i][0].transcript);
-            inputText = event.results[i][0].transcript;
+            var inputObj = {
+              text: event.results[i][0].transcript
+            }
 
-            $.post('/findInsight', inputText).done(function(data) {
+            $.post('/findInsight', inputObj).done(function(data) {
               $('#insights').html("" + data);
             });
 
@@ -111,9 +111,16 @@ recognition.onresult = function(event) { //the event holds the results
     } //end for loop
 }; 
 
-function startButton(event) {
-    recognition.start();
-    // start_img.src = 'https://speechlogger.appspot.com/images/micslash2.png'; //We change the image to a slashed until the user approves the browser to listen and recognition actually starts. Then – we’ll change the image to ‘mic on’.
-}
+// function startButton(event) {
+//     recognition.start();
+//     // start_img.src = 'https://speechlogger.appspot.com/images/micslash2.png'; //We change the image to a slashed until the user approves the browser to listen and recognition actually starts. Then – we’ll change the image to ‘mic on’.
+// }
+$('#audi').click(function() {
+  recognition.start();
+})
+
+$('.btn-default').click(function() {
+  recognition.start();
+})
 </script>
 </html>

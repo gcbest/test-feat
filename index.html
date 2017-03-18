@@ -51,6 +51,44 @@ ZiggeoApi.Events.on("submitted", function (data) {
 </script>
 
 <script>
+
+// Personality Insights
+// ==============================================================================
+var PersonalityInsightsV3 = require('watson-developer-cloud/personality-insights/v3');
+var personality_insights = new PersonalityInsightsV3({
+  username: 'ee935a33-ed27-4bb8-bf9d-b386b29e888b',
+  password: 'mg0dLVOrGQSY',
+  version_date: '2016-10-20'
+});
+
+var inputText = "";
+
+var params_insight = {
+  // Get the content items from the JSON file.
+  content_items: require('./profile.json').contentItems,
+  text: inputText,
+  consumption_preferences: true,
+  raw_scores: true,
+  headers: {
+    'accept-language': 'en',
+    'accept': 'application/json'
+  }
+};
+
+function getInsights() {
+  personality_insights.profile(params_insight, function(error, response) {
+    if (error)
+      console.log('Error:', error);
+    else
+      console.log(JSON.stringify(response, null, 2));
+    }
+  );  
+}
+
+
+
+// // Speech Logger
+// ==============================================================================
   if (!('webkitSpeechRecognition' in window)) {
     //Speech API not supported here…
     alert("Speech Logger not available, try using Google Chrome");
@@ -87,9 +125,12 @@ recognition.onresult = function(event) { //the event holds the results
         if (event.results[i].isFinal) { //Final results
             console.log("final results: " + event.results[i][0].transcript);   //Of course – here is the place to do useful things with the results.
             $('#transcription-output-area').html('' + event.results[i][0].transcript);
+            inputText = event.results[i][0].transcript;
+            getInsights();
+
         } else {   //i.e. interim...
             console.log("interim results: " + event.results[i][0].transcript);  //You can use these results to give the user near real time experience.
-            $('#transcription-output-area').html('' + event.results[i][0].transcript);
+            $('#transcription-output-area').append('' + event.results[i][0].transcript);
         } 
     } //end for loop
 }; 

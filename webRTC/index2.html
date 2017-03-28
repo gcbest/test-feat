@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<!--
+ *  Copyright (c) 2015 The WebRTC project authors. All Rights Reserved.
+ *
+ *  Use of this source code is governed by a BSD-style license
+ *  that can be found in the LICENSE file in the root of the source
+ *  tree.
+-->
+<html>
+<head>
+
+  <meta charset="utf-8">
+  <meta name="description" content="WebRTC code samples">
+  <meta name="viewport" content="width=device-width, user-scalable=yes, initial-scale=1, maximum-scale=1">
+  <meta itemprop="description" content="Client-side WebRTC code samples">
+  <meta itemprop="image" content="../../../images/webrtc-icon-192x192.png">
+  <meta itemprop="name" content="WebRTC code samples">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta id="theme-color" name="theme-color" content="#ffffff">
+
+  <base target="_blank">
+
+  <title>MediaStream Recording</title>
+
+  <link rel="icon" sizes="192x192" href="../../../images/webrtc-icon-192x192.png">
+  <link href="//fonts.googleapis.com/css?family=Roboto:300,400,500,700" rel="stylesheet" type="text/css">
+  <link rel="stylesheet" href="/webRTC/main2.css">
+  <link rel="stylesheet" href="/webRTC/main.css">
+
+</head>
+
+<body>
+
+  <div id="container">
+
+    <h1><a href="//webrtc.github.io/samples/" title="WebRTC samples homepage">WebRTC samples</a> <span>MediaRecorder</span></h1>
+
+    <p>This demo requires Firefox 29 or later, or Chrome 47 or later with <strong>Enable experimental Web Platform features</strong> enabled from chrome://flags.</p>
+
+    <p>For more information see the MediaStream Recording API <a href="http://w3c.github.io/mediacapture-record/MediaRecorder.html" title="W3C MediaStream Recording API Editor's Draft">Editor's&nbsp;Draft</a>.</p>
+
+    <video id="gum" autoplay muted></video>
+    <video id="recorded" autoplay loop></video>
+
+    <div>
+      <button id="record" disabled>Start Recording</button>
+      <button id="play" disabled>Play</button>
+      <button id="download" disabled>Download</button>
+      <button id="audio">Audio Record</button>
+    </div>
+
+    <a href="https://github.com/webrtc/samples/tree/gh-pages/src/content/getusermedia/record" title="View source for this page on GitHub" id="viewSource">View source on GitHub</a>
+
+  </div>
+
+  <!-- include adapter for srcObject shim -->
+  <script src="https://webrtc.github.io/adapter/adapter-latest.js"></script>
+  <script>
+    'use strict';
+
+/* globals MediaRecorder */
+
+var mediaSource = new MediaSource();
+mediaSource.addEventListener('sourceopen', handleSourceOpen, false);
+var mediaRecorder;
+var recordedBlobs;
+var sourceBuffer;
+
+var gumVideo = document.querySelector('video#gum');
+var recordedVideo = document.querySelector('video#recorded');
+
+var recordButton = document.querySelector('button#record');
+var playButton = document.querySelector('button#play');
+var downloadButton = document.querySelector('button#download');
+recordButton.onclick = toggleRecording;
+playButton.onclick = play;
+downloadButton.onclick = download;
+
+// window.isSecureContext could be used for Chrome
+var isSecureOrigin = location.protocol === 'https:' ||
+location.hostname === 'localhost';
+if (!isSecureOrigin) {
+  alert('getUserMedia() must be run from a secure origin: HTTPS or localhost.' +
+    '\n\nChanging protocol to HTTPS');
+  location.protocol = 'HTTPS';
+}
+
+var constraints = {
+  audio: true,
+  video: true
+};
+
+function handleSuccess(stream) {
+  recordButton.disabled = false;
+  console.log('getUserMedia() got stream: ', stream);
+  window.stream = stream;
+  if (window.URL) {
+    gumVideo.src = window.URL.createObjectURL(stream);
+  } else {
+    gumVideo.src = stream;
+  }
+}
+
+function handleError(error) {
+  console.log('navigator.getUserMedia error: ', error);
+}
+
+navigator.mediaDevices.getUserMedia(constraints).
+    then(handleSuccess).catch(handleError);
+
+function handleSourceOpen(event) {
+  console.log('MediaSource opened');
+  sourceBuffer = mediaSource.addSourceBuffer('video/webm; codecs="vp8"');
+  console.log('Source buffer: ', sourceBuffer);
+}
+
+recordedVideo.addEventListener('error', function(ev) {
+  console.error('MediaRecording.recordedMedia.error()');
+  alert('Your browser can not play\n\n' + recordedVideo.src
+    + '\n\n media clip. event: ' + JSON.stringify(ev));
+}, true);
+
+function handleDataAvailable(event) {
+  if (event.data && event.data.size > 0) {
+    recordedBlobs.push(event.data);
+  }
+}
+
+function handleStop(event) {
+  console.log('Recorder stopped: ', event);
+}
+
+function toggleRecording() {
+  if (recordButton.textContent === 'Start Recording') {
+    startRecording();
+  } else {
+    stopRecording();
+    recordButton.textContent = 'Start Recording';
+    playButton.disabled = false;
+    downloadButton.disabled = false;
+  }
+}
+
+function startRecording() {
+  recordedBlobs = [];
+  var options = {mimeType: 'video/webm;codecs=vp9'};
+  if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+    console.log(options.mimeType + ' is not Supported');
+    options = {mimeType: 'video/webm;codecs=vp8'};
+    if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+      console.log(options.mimeType + ' is not Supported');
+      options = {mimeType: 'video/webm'};
+      if (!MediaRecorder.isTypeSupported(options.mimeType)) {
+        console.log(options.mimeType + ' is not Supported');
+        options = {mimeType: ''};
+      }
+    }
+  }
+  try {
+    mediaRecorder = new MediaRecorder(window.stream, options);
+  } catch (e) {
+    console.error('Exception while creating MediaRecorder: ' + e);
+    alert('Exception while creating MediaRecorder: '
+      + e + '. mimeType: ' + options.mimeType);
+    return;
+  }
+  console.log('Created MediaRecorder', mediaRecorder, 'with options', options);
+  recordButton.textContent = 'Stop Recording';
+  playButton.disabled = true;
+  downloadButton.disabled = true;
+  mediaRecorder.onstop = handleStop;
+  mediaRecorder.ondataavailable = handleDataAvailable;
+  mediaRecorder.start(10); // collect 10ms of data
+  console.log('MediaRecorder started', mediaRecorder);
+}
+
+function stopRecording() {
+  mediaRecorder.stop();
+  console.log('Recorded Blobs: ', recordedBlobs);
+  recordedVideo.controls = true;
+}
+
+function play() {
+  var superBuffer = new Blob(recordedBlobs, {type: 'video/webm'});
+  recordedVideo.src = window.URL.createObjectURL(superBuffer);
+}
+
+function download() {
+  var blob = new Blob(recordedBlobs, {type: 'video/webm'});
+  var url = window.URL.createObjectURL(blob);
+  var a = document.createElement('a');
+  a.style.display = 'none';
+  a.href = url;
+  a.download = 'test.webm';
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function() {
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+  }, 100);
+}
+
+  </script>
+
+  <script>
+// // Speech Logger
+// ==============================================================================
+  if (!('webkitSpeechRecognition' in window)) {
+    //Speech API not supported here…
+    alert("Speech Logger not available, try using Google Chrome");
+} else { //Let’s do some cool stuff :)
+    var recognition = new webkitSpeechRecognition(); //That is the object that will manage our whole recognition process. 
+    recognition.continuous = true;   //Suitable for dictation. 
+    recognition.interimResults = true;  //If we want to start receiving results even if they are not final.
+    //Define some more additional parameters for the recognition:
+    recognition.lang = "en-US"; 
+    recognition.maxAlternatives = 1; //Since from our experience, the highest result is really the best...
+}
+
+recognition.onstart = function() {
+    //Listening (capturing voice from audio input) started.
+    //This is a good place to give the user visual feedback about that (i.e. flash a red light, etc.)
+    console.log('audio record start');
+};
+
+recognition.onend = function() {
+    //Again – give the user feedback that you are not listening anymore. If you wish to achieve continuous recognition – you can write a script to start the recognizer again here.
+    console.log('audio record end');
+};
+
+recognition.onresult = function(event) { //the event holds the results
+//Yay – we have results! Let’s check if they are defined and if final or not:
+    if (typeof(event.results) === 'undefined') { //Something is wrong…
+        recognition.stop();
+        return;
+    }
+
+    for (var i = event.resultIndex; i < event.results.length; ++i) {      
+        if (event.results[i].isFinal) { //Final results
+            console.log("final results: " + event.results[i][0].transcript);   //Of course – here is the place to do useful things with the results.
+            var inputObj = {
+              text: event.results[i][0].transcript
+            }
+
+            // $.post('/findInsight', inputObj).done(function(data) {
+            //   $('#insights').html("" + data);
+            // });
+
+        } else {   //i.e. interim...
+            console.log("interim results: " + event.results[i][0].transcript);  //You can use these results to give the user near real time experience.
+        } 
+    } //end for loop
+}; 
+
+// function startButton(event) {
+//     recognition.start();
+//     // start_img.src = 'https://speechlogger.appspot.com/images/micslash2.png'; //We change the image to a slashed until the user approves the browser to listen and recognition actually starts. Then – we’ll change the image to ‘mic on’.
+// }
+document.querySelector('button#record').addEventListener('click', function() {
+  console.log('audio recording starting');
+  recognition.start();
+})
+
+</script>
+
+</body>
+</html>
